@@ -60,4 +60,6 @@ _Prestar atenção em arquivos do tipo .bak .old .save em todas as suas variaç�
 
 _Aparentemente as perguntas te guiam para onde esta as flags (talvez o exame seja assim tambem, outro ponto importante é que a flag vem em um formato +/- assim FLAG1{hashMD5} tipo: FLAG1{23c7d4bababf8048c0cda5136ac83c9e} a flag deve ser entregue como: '23c7d4bababf8048c0cda5136ac83c9e' e não dentro das chaves)_
 
+_quando iniciar o teste tenta pegar os hosts que estão configurados no '/etc/hosts' isso pode matar um pouco do tempo de enumeração_
+
 
