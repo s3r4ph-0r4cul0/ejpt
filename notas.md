@@ -31,6 +31,12 @@ nmap -Pn -A -v
 - getcap -r / 2>/dev/null
 - ps aux | grep root
 
+
+# WGET
+
+- wget -r -np -nH --cut-dirs=1 # arquivos em modo mirror
+
+
 ---
 
 _No momentomento que a prova iniciar é importante que tenha uma planilha com os seguintes topicos_
@@ -50,6 +56,8 @@ _Para realizar o pivoteamento o melhor cenario é o MSF Routing usando MSF autor
 _Não ignore os outputs do NMAP ou dos outros scanners como SBMmap, crackmapexec ou enum4linux etc... aparentemente as creds podem ser usadas em diversos serviços como por ex.: Houve um relato de que uma pessoa conseguiu as creds do RDP por um scan do nmap que retornou as creds pelo protocolo SMB._
 _So com essas informações ja da pra saber que existe um ambiente hibrido de Linux e Windows_
 
+_Prestar atenção em arquivos do tipo .bak .old .save em todas as suas variações, fiz um CTF da propŕia empresa que tinha um arquivo que normalmente é 'wp-config.php' mas como tinha que pegar o bak dele tive que procurar por 'wp-config.bak'_
 
+_Aparentemente as perguntas te guiam para onde esta as flags (talvez o exame seja assim tambem, outro ponto importante é que a flag vem em um formato +/- assim FLAG1{hashMD5} tipo: FLAG1{23c7d4bababf8048c0cda5136ac83c9e} a flag deve ser entregue como: '23c7d4bababf8048c0cda5136ac83c9e' e não dentro das chaves)_
 
 
