@@ -45,6 +45,15 @@ _No momentomento que a prova iniciar é importante que tenha uma planilha com os
 | Nome do host | IP | Serviços | Credenciais | Vulnerabilidades | Observações |
 ``
 
+
+# Scripts
+
+```
+while read -r share; do echo “Testing share: $share”; smbclient “//target.ine.local/$share” -N -c “ls” &>/dev/null && echo “[+] Successfully accessed share: $share”; done < /root/Desktop/wordlists/shares.txt
+```
+
+
+
 # Pivoteamento 
 
 _Existe mais de um IP na rede DMZ e talvez seja exatemente por isso que seja necessario realizar o pivotiamento._
@@ -62,4 +71,4 @@ _Aparentemente as perguntas te guiam para onde esta as flags (talvez o exame sej
 
 _quando iniciar o teste tenta pegar os hosts que estão configurados no '/etc/hosts' isso pode matar um pouco do tempo de enumeração_
 
-
+_Prestar atenção nos bannes dos serviços e protocolos, pode ter dicas e flags_
