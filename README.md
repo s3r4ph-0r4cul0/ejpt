@@ -112,6 +112,56 @@ while read -r share; do
   echo "[+] Successfully accessed share: $share"
 done < /root/Desktop/wordlists/shares.txt
 ```
+---
+
+## 🔓 Brute Force / Enumeração Ativa
+
+### 💣 Hydra
+
+```bash
+# SSH
+hydra -l <user> -P wordlist.txt ssh://<IP>
+
+# FTP
+hydra -l <user> -P wordlist.txt ftp://<IP>
+
+# HTTP POST login
+hydra -l <user> -P wordlist.txt <IP> http-post-form "/login:username=^USER^&password=^PASS^:F=incorrect"
+```
+
+---
+
+### 🧨 CrackMapExec
+
+```bash
+# SMB brute force
+crackmapexec smb <IP> -u users.txt -p passwords.txt
+
+# Validar credenciais
+crackmapexec smb <IP> -u <user> -p <pass>
+
+# Executar comando
+crackmapexec smb <IP> -u <user> -p <pass> -x "whoami"
+```
+
+---
+
+### 🚀 FFUF
+
+```bash
+# Descoberta de diretórios
+ffuf -u http://<IP>/FUZZ -w wordlist.txt
+
+# Extensões
+ffuf -u http://<IP>/FUZZ -w wordlist.txt -e .php,.txt,.bak
+
+# Virtual hosts
+ffuf -u http://<IP> -H "Host: FUZZ.<domain>" -w wordlist.txt
+
+# Filtrar por tamanho
+ffuf -u http://<IP>/FUZZ -w wordlist.txt -fs 0
+```
+
 
 ---
 
