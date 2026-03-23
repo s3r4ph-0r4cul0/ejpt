@@ -173,6 +173,43 @@ _Dentro da DMZ tem mais de uma máquina, mas aparentemente só tem uma máquina 
 
 _Para realizar o pivoteamento o melhor cenário é o MSF Routing usando MSF autoroute + portfwd_
 
+
+---
+## 🎯 Ataques Específicos
+
+_Alguns cenários exigem ataques direcionados a serviços ou vulnerabilidades específicas, exigindo identificação precisa do vetor e execução manual._
+
+_Um exemplo clássico é o ataque de Shellshock, que explora variáveis de ambiente em servidores vulneráveis ao Bash, podendo ser realizado manualmente através de headers HTTP._
+
+**📌 Shellshock (Manual)**
+- Vetor: Header `User-Agent`
+- Payload: `() { :; }; echo; /bin/bash -c 'cat /flag.txt'`
+- EVIDENCIA DO CURSO:
+<img width="1913" height="983" alt="image" src="https://github.com/user-attachments/assets/02f2aba8-290f-451b-9652-cc420b80ff62" />
+
+
+_Durante testes, alguns serviços podem abrir vetores diretos de exploração ou pós-exploração:_
+
+- **WebDAV**
+  - Pode permitir upload de webshells
+  - Útil para RCE em servidores IIS mal configurados
+
+- **PsExec**
+  - Execução remota via SMB
+  - Muito utilizado em movimentação lateral
+
+---
+
+**📌 Webshells (ASP)**
+- Caminho comum: `/usr/share/webshells/asp/webshell.asp`
+
+  
+_Pode ser utilizado após upload via WebDAV ou outras falhas de upload para obter execução remota de comandos._
+
+---
+
+⚠️ _Sempre valide a vulnerabilidade antes da exploração e priorize métodos que gerem menos ruído (stealth)._
+
 ```bash
 ip a
 route -n
