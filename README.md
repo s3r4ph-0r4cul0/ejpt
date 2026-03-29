@@ -6,7 +6,7 @@
 
 ```bash
 # Scan inicial
-nmap -Pn -T4 -F <IP>
+nmap -p- -Sv -sC <IP> / nmap -p- -A -v <IP>
 
 # Scan completo
 nmap -Pn -p- -T4 <IP>
@@ -20,6 +20,21 @@ nmap -Pn -A -v <IP>
 # Output
 nmap -oN scan.txt -oX scan.xml <IP>
 ```
+
+
+### 🚨 Dicas Importantes
+
+_Verificar `/etc/hosts` do kali (Se a prova não tem hots na net os dominios precisam estar declarados na maquina do atacante)_
+
+_Observar banners de serviços e protocolos (podem conter dicas ou flags)_ 
+
+
+## 📊 Organização
+
+_No momento que a prova iniciar é importante que tenha uma planilha com os seguintes tópicos_
+
+| Nome do host | IP | Serviços | Credenciais | Vulnerabilidades | Observações |
+|--------------|----|----------|-------------|------------------|-------------|
 
 ---
 
@@ -277,6 +292,22 @@ _Dentro da DMZ tem mais de uma máquina, mas aparentemente só tem uma máquina 
 _Para realizar o pivoteamento o melhor cenário é o MSF Routing usando MSF autoroute + portfwd_
 
 
+### Enumeração de Rede
+
+```bash
+ip a
+route -n
+```
+
+### Pivoting com Metasploit (MSF)
+
+`run autoroute -s <REDE_INTERNA>`
+
+
+### Redirecionamento de portas (Port Forwarding)
+
+`portfwd add -l <LOCAL_PORT> -p <REMOTE_PORT> -r <IP_INTERNO>`
+
 ---
 ## 🎯 Ataques Específicos
 
@@ -301,7 +332,6 @@ _Durante testes, alguns serviços podem abrir vetores diretos de exploração ou
   - Execução remota via SMB
   - Muito utilizado em movimentação lateral
 
----
 
 **📌 Webshells (ASP)**
 - Caminho comum: `/usr/share/webshells/asp/webshell.asp`
@@ -311,38 +341,6 @@ _Pode ser utilizado após upload via WebDAV ou outras falhas de upload para obte
 
 ---
 
-```bash
-ip a
-route -n
-```
-
-```bash
-run autoroute -s <REDE>
-portfwd add -l <LOCAL_PORT> -p <REMOTE_PORT> -r <IP>
-```
-
----
-
-## 📊 Organização
-
-_No momento que a prova iniciar é importante que tenha uma planilha com os seguintes tópicos_
-
-| Nome do host | IP | Serviços | Credenciais | Vulnerabilidades | Observações |
-|--------------|----|----------|-------------|------------------|-------------|
-
----
-
-## 🚨 Dicas Importantes
-
-- Verificar `/etc/hosts`
-- Observar banners de serviços e protocolos (podem conter dicas ou flags)
-- Testar credenciais em TODOS os serviços
-- Procurar:
-  - backups
-  - configs
-  - logs
-
----
 
 ## 🏁 Flags
 
