@@ -456,14 +456,9 @@ httrack http://<IP> -O output.html --auth=<user>:<pass>
 
 | Wordlist | Uso |
 |----------|-----|
-| `/root/Desktop/wordlists/unix_passwords.txt` | Senhas Unix genéricas |
-| `/root/Desktop/wordlists/shares.txt` | Nomes de shares SMB |
-| `/usr/share/metasploit-framework/data/wordlists/unix_passwords.txt` | Senhas Unix via MSF |
-| `/usr/share/metasploit-framework/data/wordlists/common_users.txt` | Usuários comuns via MSF |
-| `/usr/share/nmap/nselib/data/wp-plugins.lst` | Plugins WordPress (wpscan/nmap) |
-| `/usr/share/wordlists/rockyou.txt` | Senhas gerais (John, Hydra) |
-| `/usr/share/wordlists/dirb/common.txt` | Diretórios web (gobuster, ffuf) |
-| `/usr/share/seclists/Usernames/top-usernames-shortlist.txt` | Usuários comuns (Hydra) |
+| `/usr/share/metasploit-framework/data/wordlists/unix_users.txt` | Users Unix genéricas |
+| `/usr/share/metasploit-framework/data/wordlists/unix_passwords.txt` | Passwords Unix genéricas |
+
 
 As wordlists mais usadas no curso estão no path: `/usr/share/wordlists/metasploit`
 
